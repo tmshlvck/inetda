@@ -72,6 +72,7 @@ class IPFind(object):
             if ipk.subnet_of(p):
                 yield (p, self.table[p])
 
+
     def matchBest(self, k):
         bk = None
         bv = None
@@ -80,6 +81,10 @@ class IPFind(object):
                 bk = k
                 bv = v
         return (bk, bv)
+
+
+    def keyExist(self, k):
+        return (self.matchBest(k) != (None, None))
 
 
     def readPatternFile(self, filename):

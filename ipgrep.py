@@ -26,11 +26,6 @@ import csv
 import ipfind
 
 
-def matchbool(m):
-    if m == (None,None):
-        return False
-    return True
-
 
 def main():
     def normalize_pfx(pfx):
@@ -42,7 +37,7 @@ def main():
                 lio = io.StringIO(l)
                 rdr = csv.reader(lio)
                 row = next(rdr)
-                if matchbool(grep.matchBest(normalize_pfx(row[column]))):
+                if grep.keyExist(normalize_pfx(row[column])):
                     print(l.strip())
             except:
                 pass
@@ -56,34 +51,39 @@ def main():
             for l in lines():
                 m = mre.match(l)
                 if m:
-                    if matchbool(grep.matchBest(normalize_pfx(m.group(1)))):
+                    if grep.keyExist(normalize_pfx(m.group(1))):
                         print(l.strip())
 
     def process_text(lines, grep):
         for l in lines:
             try:
-                if matchbool(grep.matchBest(normalize_pfx(l.strip()))):
+                if grep.keyExist(normalize_pfx(l.strip())):
                     print(l.strip())
             except:
-                raise
                 pass
 
 
     parser = argparse.ArgumentParser(description='Search for IPs or subprefixes in IPv4/IPv6 prefixes')
-    parser.add_argument('-n', '--network', metavar='NET', help='search for prefix')
+    parser.add_argument('-n', '--network', metavar='NET', help='search for prefix', action="append")
     parser.add_argument('-f', '--file', metavar='FILE', help='load search IP/prefix list from file')
     parser.add_argument('-c', '--csv', metavar='N', help='read IP/prefixes from N-th column in CSV file(s)')
     parser.add_argument('-r', '--regexp', metavar='RE', help='read IP/prefixes from first group in RE matched in file(s)')
+    parser.add_argument('-t', '--tree', help='use binary tree for matching', action='store_true')
     parser.add_argument("files", help="files to match IP/prefixes in", metavar="FILES", nargs='*')
 
     args = parser.parse_args()
 
+    if args.tree:
+        grep = ipfind.IPTreeFind()
+    else:
+        grep = ipfind.IPFind()
+
     if args.network:
-        grep = ipfind.IPFind(table=ipaddress.ip_network(args.network))
+        for a in args.network:
+            grep.addToTable(ipaddress.ip_network(a), True)
 
     if args.file:
-        grep = ipfind.IPFind()
-        grep.readFile(args.file)
+        grep.readPatternFile(args.file)
 
     if args.files:
         for f in args.files:
@@ -106,3 +106,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
