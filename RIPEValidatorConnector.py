@@ -84,6 +84,17 @@ class RPKIValidatorAPI(object):
             self.urlBase = self.RIPE_VALIDATOR_URL
 
     @classmethod
+    def _getJson(cls, url):
+        """ query the API on a specific URL and set Accept type to text/json
+        - url - the URL to query with get request
+        returns: decoded json in pythonic form
+        """
+        r = requests.get(url, stream=True, headers={'Accept': 'text/json'})
+        _warn("GET %s" % url)
+        _warn("Response: %s" % str(r.content))
+        return json.loads(r.content)
+    
+    @classmethod
     def _get(cls, url):
         """ query the API on a specific URL
         - url - the URL to query with get request
@@ -93,6 +104,7 @@ class RPKIValidatorAPI(object):
         _warn("GET %s" % url)
         _warn("Response: %s" % str(r.content))
         return json.loads(r.content)
+ 
     
     def getROAs(self):
         """ request the validator for current list of ROAs
@@ -100,7 +112,7 @@ class RPKIValidatorAPI(object):
         the format of resposne: TODO
         """
         url = self.urlBase + self.EXPORT_JSON_API_URI
-        return self._get(url)
+        return self._getJson(url)
 
     def _genBGPPreviewUrl(self, startFrom=1, pageSize=1):
         """ internal: generate URL for BGPPreview API of the validator
