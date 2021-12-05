@@ -211,6 +211,20 @@ def read_csv(csvfile):
         pass
 
 
+def read_linux_rt(lrtfile):
+  """
+  read file with ip -n route >$file or ip -n -6 route >$file
+  """
+  for l in lrtfile:
+    try:
+      grps = l.strip().split(' ', 1)
+      addr = ipaddress.ip_network(grps[0])
+      yield (addr, grps[1]) # generate tuples (ipaddress, rest of the row)
+    except:
+      raise
+
+
+
 def normalize_input(instr):
   DELIMITERS = [' ', ',']
 
@@ -231,7 +245,7 @@ def output(ip, indata, outdata):
   print(f"{ip},{str(indata) if indata else ''},{str(outdata)}")
 
 
-@click.command(help='find matching IP subnets that contain IP addresses or vice versa')
+@click.command(help='find IP subnets that contain IP addresses from args or STDIN\nThe args or STDIN has to contain IP address in the beginning, then more data can be present (delimited by space or comma)')
 @click.option('-c', '--csv', 'csvfile', help="parse CSV file, find IP/prefixes there", type=click.File('r'))
 @click.option('-r', '--routetable', 'routetable', help="parse Linux/Cisco route table", type=click.File('r'))
 @click.option('-v', '--vrps', 'vrpsfile', help="parse VRPs CSV file from routinator", type=click.File('r'))
@@ -242,13 +256,16 @@ def main(csvfile, routetable, vrpsfile, ips):
   if not ips:
     ips = sys.stdin
 
-  # we match IP addresses in a routing table, using the longest prefix match 
-  if routetable:
-    raise NotImplemented()
+  if routetable or csvfile:
+    # we match IP addresses in a routing table, using the longest prefix match 
+    if routetable:
+      rtgen = read_linux_rt(csvfile)
 
-  # the same, but we have the "routing table" in a CSV file
-  if csvfile:
-    for a,r in read_csv(csvfile):
+    # the same, but we have the "routing table" in a CSV file
+    if csvfile:
+      rtgen = read_csv(csvfile)
+
+    for a,r in rtgen:
       if not a in pfxs[a.version]:
         pfxs[a.version][a] = []
       pfxs[a.version][a].append(r)
@@ -262,7 +279,7 @@ def main(csvfile, routetable, vrpsfile, ips):
 
   # this is specical case: we match IP networks in a VRPS table, which is an IP network filter
   # and it contains networks and maxlens
-  if vrpsfile:
+  elif vrpsfile:
     for pfx,ml,asn,rir in read_vrps(vrpsfile):
       if not pfx in pfxs[pfx.version]:
         pfxs[pfx.version][pfx] = set()
@@ -276,7 +293,7 @@ def main(csvfile, routetable, vrpsfile, ips):
         if node.value:
           for nv in node.value:
             pfx,ml,asn,rir = nv
-            if ipnp.prefixlen <= ml:
+            if ipnp.prefixlen <= ml or ipnp.num_addresses == 1:
               matches.add(nv)
       output(ipn, indata, matches)
 
