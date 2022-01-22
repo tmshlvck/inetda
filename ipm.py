@@ -249,8 +249,9 @@ def output(ip, indata, outdata):
 @click.option('-c', '--csv', 'csvfile', help="parse CSV file, find IP/prefixes there", type=click.File('r'))
 @click.option('-r', '--routetable', 'routetable', help="parse Linux/Cisco route table", type=click.File('r'))
 @click.option('-v', '--vrps', 'vrpsfile', help="parse VRPs CSV file from routinator", type=click.File('r'))
+@click.option('-n', '--include-no-match', 'nomatchincl', help="include lines with no matche (with empty resut)", is_flag=True)
 @click.argument('ips', nargs=-1)
-def main(csvfile, routetable, vrpsfile, ips):
+def main(csvfile, routetable, vrpsfile, ips, nomatchincl):
   pfxs = { 4: IPTree(4), 6: IPTree(6) }
 
   if not ips:
@@ -272,10 +273,17 @@ def main(csvfile, routetable, vrpsfile, ips):
 
     for ipa,indata in normalize_input(ips):
       ipap = ipaddress.ip_address(ipa)
-      res = pfxs[ipap.version].lookupLongestPrefix(ipap)
-      if res:
-        for r in res:
-          output(ipa, indata, r)
+      try:
+        res = pfxs[ipap.version].lookupLongestPrefix(ipap)
+        if res:
+          for r in res:
+            output(ipa, indata, r)
+        else:
+          if nomatchincl:
+            output(ipa, indata, None)
+      except IndexError:
+        if nomatchincl:
+          output(ipa, indata, None)
 
   # this is specical case: we match IP networks in a VRPS table, which is an IP network filter
   # and it contains networks and maxlens
