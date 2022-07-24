@@ -1,0 +1,7 @@
+::1 dev lo proto 2 metric 256 pref medium
+2a02:2a8:ff01:2::/64 dev bridge0 proto 9 metric 425 pref medium
+fd00:a0b7::/64 dev tun0 proto 2 metric 50 pref medium
+fe80::/64 dev veth0ms9xm proto 2 metric 256 pref medium
+fe80::/64 dev tun0 proto 2 metric 256 pref medium
+fe80::/64 dev bridge0 proto 2 metric 1024 pref medium
+default via fe80::b809:76ff:fe13:9472 dev bridge0 proto 9 metric 425 pref high
